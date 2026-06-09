@@ -2,58 +2,61 @@ import feedparser
 import time
 import os
 import requests
+import threading
 from flask import Flask
-from threading import Thread
 
-TOKEN = os.environ.get("BOT_TOKEN")
-CHAT_ID = os.environ.get("CHAT_ID")
 app = Flask(__name__)
 
+# ÇEVRE DEĞİŞKENLERİNİ AL
+TOKEN = os.environ.get("BOT_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
+# Buraya RSS linkini tırnak içinde yapıştır
+RSS_URL = "https://rss.app/feeds/HXScZ2SZ5dwrKNp4.xml" 
+
+last_link = ""
+
 @app.route('/')
-def home(): return "Bot aktif.", 200
+def home():
+    return "Bot aktif ve tarama yapıyor.", 200
 
-def run_web():
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+def check_rss():
+    global last_link
+    try:
+        feed = feedparser.parse(RSS_URL)
+        if feed.entries:
+            entry = feed.entries[0]
+            # Eğer yeni bir tweet varsa ve daha önce gönderilmediyse
+            if entry.link != last_link:
+                msg = f"Yeni tweet:\n{entry.title}\n{entry.link}"
+                res = requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                                    data={"chat_id": CHAT_ID, "text": msg})
+                print(f"Telegram Gönderim Durumu: {res.status_code}")
+                last_link = entry.link
+            else:
+                print("Yeni tweet yok, bekleniyor...")
+    except Exception as e:
+        print(f"Hata oluştu: {e}")
 
-def run_bot():
-    last_link = ""
-    print("--- BOT İZLEMEYE BAŞLADI ---")
-    
+# Kendi kendini canlı tutma (Ping) fonksiyonu
+def keep_alive():
     while True:
         try:
-            rss_url = "https://rss.app/feeds/HXScZ2SZ5dwrKNp4.xml"
-            feed = feedparser.parse(rss_url)
-            
-            if feed.entries:
-                entry = feed.entries[0]
-                current_link = entry.link
-                
-                print(f"Kontrol edildi. Son link: {current_link}") # Logda görürsün
-                
-                if current_link != last_link:
-                    print("Yeni tweet bulundu! Telegram'a gönderiliyor...")
-                    
-                    # Telegram isteği
-                    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-                    data = {"chat_id": CHAT_ID, "text": f"Yeni tweet: {entry.title}\n{current_link}"}
-                    response = requests.post(url, data=data)
-                    
-                    if response.status_code == 200:
-                        print("Başarıyla gönderildi.")
-                        last_link = current_link
-                    else:
-                        print(f"Telegram Hatası: {response.text}") # Hata kodunu loga yazar
-                else:
-                    print("Yeni tweet yok, bekleniyor.")
-            else:
-                print("RSS boş görünüyor.")
-        
-        except Exception as e:
-            print(f"Genel Hata: {e}")
-        
-        time.sleep(120) # 2 dakikada bir kontrol
+            # Buradaki linki kendi render linkinle güncelle: https://ollo-hwvh.onrender.com/
+            requests.get("https://ollo-hwvh.onrender.com/") 
+        except:
+            pass
+        time.sleep(300) # 5 dakikada bir kendi adresine ping at
+
+def worker():
+    while True:
+        check_rss()
+        time.sleep(120) # 2 dakikada bir RSS kontrolü
 
 if __name__ == "__main__":
-    Thread(target=run_bot, daemon=True).start()
-    run_web()
+    # 1. RSS Kontrolcüsünü başlat
+    threading.Thread(target=worker, daemon=True).start()
+    # 2. Uyanık kalma ping'ini başlat
+    threading.Thread(target=keep_alive, daemon=True).start()
+    # 3. Web sunucusunu başlat
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
     
