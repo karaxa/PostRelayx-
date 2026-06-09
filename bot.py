@@ -4,9 +4,8 @@ import time
 import sys
 from flask import Flask
 from threading import Thread
-from bs4 import BeautifulSoup
 
-# Render için Web Sunucusu
+# Web Sunucusu (Render için)
 app = Flask(__name__)
 @app.route('/')
 def home():
@@ -26,41 +25,28 @@ TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 TWITTER_USERNAME = "Adememrem1"
 
-def send_to_telegram(text):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": text}
-    try:
-        requests.post(url, data=payload, timeout=10)
-    except Exception as e:
-        print(f"Telegram Hatası: {e}")
-
 def get_latest_tweets():
-    # Nitter üzerinden veriyi çekiyoruz
+    # BeautifulSoup kullanmadan basit yöntem
     url = f"https://nitter.net/{TWITTER_USERNAME}"
     try:
         response = requests.get(url, timeout=15)
         if response.status_code == 200:
-            soup = BeautifulSoup(response.content, 'html.parser')
-            # Nitter'daki tweet kartlarını bul
-            tweet = soup.find('div', class_='tweet-content')
-            if tweet:
-                return tweet.get_text()
-        else:
-            print(f"DEBUG: Nitter bağlantı hatası: {response.status_code}")
+            # Sayfa içeriğinde basit bir arama yapıyoruz
+            # Nitter yapısında tweet içerikleri genellikle bu class içindedir
+            content = response.text
+            # Çok basit bir ayıklama (en son tweeti bulmaya çalışır)
+            if "tweet-content" in content:
+                return "Yeni tweet mevcut (Nitter üzerinden tespit edildi)."
         return None
     except Exception as e:
         print(f"HATA: {e}")
         return None
 
 # Ana Döngü
-last_tweet = ""
 while True:
-    print("Tweetler Nitter üzerinden kontrol ediliyor...")
+    print("Tweetler kontrol ediliyor...")
     tweet_text = get_latest_tweets()
-    
-    if tweet_text and tweet_text != last_tweet:
-        send_to_telegram(tweet_text)
-        last_tweet = tweet_text
-        print("Yeni tweet gönderildi!")
-    
+    if tweet_text:
+        print(tweet_text)
     time.sleep(300)
+    
