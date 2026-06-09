@@ -40,20 +40,27 @@ def get_latest_tweets():
     url = f"https://syndication.twitter.com/srv/timeline-profile?screen_name={TWITTER_USERNAME}"
     try:
         response = requests.get(url, timeout=15)
+        print(f"DEBUG: API Durum Kodu: {response.status_code}")
+        
         if response.status_code == 200:
             data = response.json()
             tweets = data.get("timeline", [])
             if tweets:
                 # En son tweet metnini döndür
-                return tweets[0].get("text")
-        print(f"API Yanıtı: {response.status_code}")
+                text = tweets[0].get("text")
+                print(f"DEBUG: Çekilen tweet: {text[:30]}...")
+                return text
+            else:
+                print("DEBUG: API yanıt verdi ama tweet bulunamadı.")
+        else:
+            print(f"DEBUG: API hatası, kod: {response.status_code}")
         return None
     except Exception as e:
         print(f"TWITTER/API HATASI: {e}")
         return None
 
 # İlk çalıştığında bağlantıyı test et
-send_to_telegram("Bot başarıyla başlatıldı!")
+send_to_telegram("Bot başarıyla başlatıldı ve izlemeye başladı!")
 
 # Ana Döngü
 last_tweet = ""
@@ -66,6 +73,6 @@ while True:
             send_to_telegram(tweet_text)
             last_tweet = tweet_text
         else:
-            print("Yeni tweet yok.")
+            print("Yeni tweet yok (aynı tweet).")
     
     time.sleep(300) # 5 dakika bekle
