@@ -1,58 +1,47 @@
 import feedparser
 import time
 import os
-import sys
 import requests
 from flask import Flask
 from threading import Thread
 
-# 1. Ayarları güvenli al
 TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 
-# Eğer değerler girilmediyse botu hata vererek durdur
-if not TOKEN or not CHAT_ID:
-    print("HATA: BOT_TOKEN veya CHAT_ID Render panelinde tanımlı değil!")
-    sys.exit(1)
-
-# 2. Web Sunucusu (Render için)
-app = Flask(__name__)
-@app.route('/')
-def home(): return "Bot aktif."
-
-def run_web():
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
-
-# 3. RSS Kontrolü
 def check_rss():
-    # https://rss.app/feeds/HXScZ2SZ5dwrKNp4.xml
-    rss_url = "https://rss.app/feeds/..." 
-    try:
-        feed = feedparser.parse(rss_url)
-        if feed.entries:
-            return feed.entries[0].link # En son linki al
-    except Exception as e:
-        print(f"RSS Hatası: {e}")
+    # RSS.app'den aldığın linki buraya yaz
+    rss_url = "https://rss.app/feeds/HXScZ2SZ5dwrKNp4.xml" 
+    feed = feedparser.parse(rss_url)
+    if feed.entries:
+        entry = feed.entries[0]
+        # Görseli bulmaya çalış (rss.app bunu summary içinde verir)
+        image_url = None
+        if 'media_content' in entry:
+            image_url = entry.media_content[0]['url']
+        
+        return {
+            "link": entry.link,
+            "title": entry.title,
+            "image": image_url
+        }
     return None
 
-# 4. Ana Döngü
-if __name__ == "__main__":
-    Thread(target=run_web, daemon=True).start()
+def send_telegram(tweet):
+    base_url = f"https://api.telegram.org/bot{TOKEN}"
+    text = f"Yeni tweet paylaşıldı!\n\n{tweet['title']}\n\nLink: {tweet['link']}"
     
-    last_link = ""
-    print("--- BOT BAŞLATILDI VE İZLİYOR ---")
+    # Eğer görsel varsa sendPhoto, yoksa sendMessage kullan
+    if tweet['image']:
+        requests.post(f"{base_url}/sendPhoto", data={"chat_id": CHAT_ID, "photo": tweet['image'], "caption": text})
+    else:
+        requests.post(f"{base_url}/sendMessage", data={"chat_id": CHAT_ID, "text": text})
+
+# Ana döngü
+last_link = ""
+while True:
+    new_tweet = check_rss()
+    if new_tweet and new_tweet['link'] != last_link:
+        send_telegram(new_tweet)
+        last_link = new_tweet['link']
+    time.sleep(600)
     
-    while True:
-        new_link = check_rss()
-        
-        # Sadece yeni ve farklı bir linkse gönder
-        if new_link and new_link != last_link:
-            try:
-                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                              data={"chat_id": CHAT_ID, "text": f"Yeni tweet paylaşıldı: {new_link}"})
-                print(f"Bildirim gönderildi: {new_link}")
-                last_link = new_link
-            except Exception as e:
-                print(f"Telegram Gönderme Hatası: {e}")
-        
-        time.sleep(600) # 10 dakika bekle
