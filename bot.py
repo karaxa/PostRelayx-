@@ -1,43 +1,32 @@
+import feedparser
+import time
 import os
 import requests
-import sys
 from flask import Flask
 from threading import Thread
 
-# Logları anlık akıt
-sys.stdout.reconfigure(line_buffering=True)
-
-# Basit Web Sunucusu
+# Web sunucusu
 app = Flask(__name__)
 @app.route('/')
-def home():
-    return "Bot aktif."
+def home(): return "Bot aktif."
+Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
 
-def run_web():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+TOKEN = os.environ.get("BOT_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
 
-t = Thread(target=run_web)
-t.daemon = True
-t.start()
+def check_rss():
+    # Buraya rss.app gibi bir servisten aldığın RSS linkini koy
+    rss_url = "https://rss.app/feeds/PPYc94ZN5R9ZQc4e.xml"
+    feed = feedparser.parse(rss_url)
+    if feed.entries:
+        return feed.entries[0].title # En son tweet başlığı
+    return None
 
-def test_twitter_access():
-    username = "Adememrem1"
-    url = f"https://nitter.poast.org/{username}"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-        print(f"--- BAĞLANTI TESTİ ---")
-        print(f"Status Code: {response.status_code}")
-        # Sayfanın ilk 500 karakterini loglarda görelim
-        print(f"Sayfa Başlangıcı: {response.text[:500]}")
-    except Exception as e:
-        print(f"HATA: {e}")
-
-# Botu başlat ve testi çalıştır
-if __name__ == "__main__":
-    print("Test başlıyor...")
-    test_twitter_access()
-    # Testten sonra döngüye girmesin, sadece logu görelim yeterli
+last_title = ""
+while True:
+    new_title = check_rss()
+    if new_title and new_title != last_title:
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                      data={"chat_id": CHAT_ID, "text": f"Yeni tweet: {new_title}"})
+        last_title = new_title
+    time.sleep(600) # 10 dakikada bir kontrol et
