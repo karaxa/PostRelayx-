@@ -9,39 +9,51 @@ TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 app = Flask(__name__)
 
-# Render'ın "Orada mısın?" sinyaline anında cevap ver
 @app.route('/')
-def home(): 
-    return "Bot aktif ve sağlıklı.", 200
+def home(): return "Bot aktif.", 200
 
-# Web sunucusunu başlat
 def run_web():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
 
-# RSS kontrolü ve Telegram işlerini ayrı bir yerde yürüt
 def run_bot():
     last_link = ""
+    print("--- BOT İZLEMEYE BAŞLADI ---")
+    
     while True:
         try:
-            # RSS çekme kısmı
             rss_url = "https://rss.app/feeds/HXScZ2SZ5dwrKNp4.xml"
             feed = feedparser.parse(rss_url)
+            
             if feed.entries:
                 entry = feed.entries[0]
-                if entry.link != last_link:
-                    # Bildirim gönder
-                    text = f"Yeni tweet: {entry.title}\n{entry.link}"
-                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                                  data={"chat_id": CHAT_ID, "text": text})
-                    last_link = entry.link
-        except Exception as e:
-            print(f"Hata: {e}")
+                current_link = entry.link
+                
+                print(f"Kontrol edildi. Son link: {current_link}") # Logda görürsün
+                
+                if current_link != last_link:
+                    print("Yeni tweet bulundu! Telegram'a gönderiliyor...")
+                    
+                    # Telegram isteği
+                    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+                    data = {"chat_id": CHAT_ID, "text": f"Yeni tweet: {entry.title}\n{current_link}"}
+                    response = requests.post(url, data=data)
+                    
+                    if response.status_code == 200:
+                        print("Başarıyla gönderildi.")
+                        last_link = current_link
+                    else:
+                        print(f"Telegram Hatası: {response.text}") # Hata kodunu loga yazar
+                else:
+                    print("Yeni tweet yok, bekleniyor.")
+            else:
+                print("RSS boş görünüyor.")
         
-        time.sleep(600) # 10 dakika bekle
+        except Exception as e:
+            print(f"Genel Hata: {e}")
+        
+        time.sleep(120) # 2 dakikada bir kontrol
 
 if __name__ == "__main__":
-    # Web sunucusu ana thread'de çalışsın
     Thread(target=run_bot, daemon=True).start()
     run_web()
     
