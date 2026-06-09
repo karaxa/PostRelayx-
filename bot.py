@@ -2,49 +2,46 @@ import os
 import requests
 import time
 import sys
+import xml.etree.ElementTree as ET
 
-# Logların anlık akması için gerekli ayar
 sys.stdout.reconfigure(line_buffering=True)
-print("--- BOT BAŞLATILDI ---")
+print("--- RSS BOT BAŞLATILDI ---")
 
-# Render Environment Variables üzerinden bilgileri çekiyoruz
-USER_ID = os.environ.get("USER_ID")
-X_BEARER_TOKEN = os.environ.get("X_BEARER_TOKEN")
+# Telegram Bilgileri (Render'dan çekilecek)
 TELEGRAM_BOT_TOKEN = os.environ.get("BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("CHAT_ID")
+TWITTER_USERNAME = "Adememrem1" # Takip ettiğin kişi
 
-def get_latest_tweets():
-    url = f"https://api.twitter.com/2/users/{USER_ID}/tweets"
-    headers = {"Authorization": f"Bearer {X_BEARER_TOKEN}"}
-    params = {"max_results": 5}
-    
+def get_latest_tweets_rss():
+    # Ücretsiz bir RSS dönüştürücü servisi
+    rss_url = f"https://rsshub.app/twitter/user/{TWITTER_USERNAME}"
     try:
-        response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        return response.json().get("data", [])
+        response = requests.get(rss_url, timeout=10)
+        root = ET.fromstring(response.content)
+        items = root.findall('.//item')
+        
+        # Son tweetin içeriğini al
+        if items:
+            return items[0].find('title').text
+        return None
     except Exception as e:
-        print(f"TWITTER HATASI: {e}")
-        return []
+        print(f"RSS HATASI: {e}")
+        return None
 
 def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
-    try:
-        response = requests.post(url, data=payload)
-        response.raise_for_status()
-        print("Telegram'a mesaj gönderildi.")
-    except Exception as e:
-        print(f"TELEGRAM HATASI: {e}")
+    requests.post(url, data=payload)
 
 # --- ANA DÖNGÜ ---
-print("Döngü başladı, tweetler kontrol ediliyor...")
+last_tweet = ""
 while True:
-    tweets = get_latest_tweets()
+    print("Tweetler kontrol ediliyor...")
+    tweet_text = get_latest_tweets_rss()
     
-    if tweets:
-        for tweet in tweets:
-            send_to_telegram(tweet['text'])
-    else:
-        print("Yeni tweet bulunamadı veya bir hata oluştu.")
-        
+    if tweet_text and tweet_text != last_tweet:
+        send_to_telegram(tweet_text)
+        last_tweet = tweet_text
+        print("Yeni tweet bulundu ve gönderildi!")
+    
     time.sleep(300) # 5 dakika bekle
