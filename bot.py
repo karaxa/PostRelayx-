@@ -5,28 +5,29 @@ import requests
 from flask import Flask
 from threading import Thread
 
-# Web sunucusu
-app = Flask(__name__)
-@app.route('/')
-def home(): return "Bot aktif."
-Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
-
-TOKEN = os.environ.get("BOT_TOKEN")
-CHAT_ID = os.environ.get("CHAT_ID")
+# ... (web sunucusu kısmı aynı kalsın)
 
 def check_rss():
-    # Buraya rss.app gibi bir servisten aldığın RSS linkini koy
-    rss_url = "https://rss.app/feeds/PPYc94ZN5R9ZQc4e.xml"
-    feed = feedparser.parse(rss_url)
-    if feed.entries:
-        return feed.entries[0].title # En son tweet başlığı
-    return None
+    rss_url = "https://rss.app/feeds/HXScZ2SZ5dwrKNp4.xml"
+    try:
+        feed = feedparser.parse(rss_url)
+        if feed.entries:
+            # Sadece başlığı değil, tweetin linkini alıyoruz (Bu benzersizdir)
+            return feed.entries[0].link 
+        return None
+    except:
+        return None
 
-last_title = ""
+last_link = "" # Başlangıçta boş
 while True:
-    new_title = check_rss()
-    if new_title and new_title != last_title:
+    new_link = check_rss()
+    
+    # Sadece link gerçekten değiştiyse (yani yeni tweetse) işlem yap
+    if new_link and new_link != last_link:
         requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                      data={"chat_id": CHAT_ID, "text": f"Yeni tweet: {new_title}"})
-        last_title = new_title
-    time.sleep(600) # 10 dakikada bir kontrol et
+                      data={"chat_id": CHAT_ID, "text": f"Yeni tweet paylaşıldı: {new_link}"})
+        
+        # ÖNEMLİ: En son gönderilen linki artık 'last_link' olarak kaydet
+        last_link = new_link 
+    
+    time.sleep(600) 
