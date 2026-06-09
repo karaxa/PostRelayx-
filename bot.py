@@ -1,15 +1,13 @@
 import os
 import requests
-import time
 import sys
 from flask import Flask
 from threading import Thread
 
-# Logların anlık akması için
+# Logları anlık akıt
 sys.stdout.reconfigure(line_buffering=True)
-print("--- BOT BAŞLATILDI ---")
 
-# 1. Web Sunucusu (Render için)
+# Basit Web Sunucusu
 app = Flask(__name__)
 @app.route('/')
 def home():
@@ -23,51 +21,23 @@ t = Thread(target=run_web)
 t.daemon = True
 t.start()
 
-# 2. Bot Ayarları
-TOKEN = os.environ.get("BOT_TOKEN")
-CHAT_ID = os.environ.get("CHAT_ID")
-TWITTER_USERNAME = "Adememrem1"
-
-def send_to_telegram(text):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": text}
+def test_twitter_access():
+    username = "Adememrem1"
+    url = f"https://nitter.poast.org/{username}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     try:
-        requests.post(url, data=payload, timeout=10)
-        print("Telegram'a mesaj gönderildi.")
+        response = requests.get(url, headers=headers, timeout=15)
+        print(f"--- BAĞLANTI TESTİ ---")
+        print(f"Status Code: {response.status_code}")
+        # Sayfanın ilk 500 karakterini loglarda görelim
+        print(f"Sayfa Başlangıcı: {response.text[:500]}")
     except Exception as e:
-        print(f"Telegram Hatası: {e}")
+        print(f"HATA: {e}")
 
-def get_latest_tweets():
-    # Nitter üzerinden kontrol
-    url = f"https://nitter.net/{TWITTER_USERNAME}"
-    try:
-        response = requests.get(url, timeout=15)
-        print(f"DEBUG: Nitter Yanıt Kodu: {response.status_code}")
-        
-        if response.status_code == 200:
-            content = response.text
-            # 'timeline' anahtar kelimesini arıyoruz
-            if "timeline" in content:
-                print("DEBUG: Sayfada zaman akışı (timeline) bulundu.")
-                return "Yeni içerik mevcut."
-            else:
-                print(f"DEBUG: Sayfa açıldı ama 'timeline' bulunamadı. İçerik uzunluğu: {len(content)}")
-        return None
-    except Exception as e:
-        print(f"DEBUG: Bağlantı Hatası: {e}")
-        return None
-
-# Test mesajı
-send_to_telegram("Bot başarıyla başlatıldı ve izlemeye başladı!")
-
-# Ana Döngü
-last_status = None
-while True:
-    print("Tweetler kontrol ediliyor...")
-    status = get_latest_tweets()
-    
-    if status and status != last_status:
-        send_to_telegram("Adememrem1 hesabında yeni bir hareketlilik tespit edildi!")
-        last_status = status
-    
-    time.sleep(300) # 5 dakika bekle
+# Botu başlat ve testi çalıştır
+if __name__ == "__main__":
+    print("Test başlıyor...")
+    test_twitter_access()
+    # Testten sonra döngüye girmesin, sadece logu görelim yeterli
