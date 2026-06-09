@@ -1,7 +1,3 @@
+feedparser
 requests
 flask
-beautifulsoup4
-
-
-
-
