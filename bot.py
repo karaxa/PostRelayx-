@@ -1,3 +1,21 @@
+import os
+from flask import Flask
+from threading import Thread
+
+# Render'ın beklediği portu aç
+app = Flask(__name__)
+@app.route('/')
+def home():
+    return "Bot aktif!"
+
+def run():
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+
+# Sunucuyu ayrı bir kanalda (thread) başlat
+t = Thread(target=run)
+t.start()
+
+# --- BURADAN SONRA SENİN KENDİ BOT KODLARIN BAŞLASIN ---
 import requests
 import time
 
