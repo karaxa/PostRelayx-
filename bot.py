@@ -7,7 +7,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 X_BEARER_TOKEN = os.getenv("X_BEARER_TOKEN")
 
-USERNAME = "elonmusk"   # İzlemek istediğin kullanıcı adı
+USERNAME = "Adememrem1"   # İzlemek istediğin kullanıcı adı
 SEEN_FILE = "seen.txt"
 
 def get_user_id(username):
