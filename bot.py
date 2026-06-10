@@ -25,10 +25,10 @@ def check_rss():
         if feed.entries:
             entry = feed.entries[0]
             if entry.link != last_link:
-                # Orijinal linki koruyoruz, en garantili yöntem bu
-                msg = f"📢 **Yeni Tweet**\n\n{entry.link}"
+                # Başlık (Retweet bilgisi dahil) ve linki içeren mesaj
+                msg = f"📢 **Yeni Tweet**\n\n📌 {entry.title}\n\n{entry.link}"
                 
-                # Telegram'a gönderim (Önizleme aktif)
+                # Telegram'a gönderim (Önizleme Aktif)
                 res = requests.post(
                     f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
                     data={
