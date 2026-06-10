@@ -23,28 +23,25 @@ def check_rss():
     try:
         feed = feedparser.parse(RSS_URL)
         if feed.entries:
-            # Sadece daha önce paylaşılmamış olanları al
-            new_entries = [e for e in feed.entries if e.link != last_link]
+            # Sadece en son gelen tweeti (0. indeks) alıyoruz
+            entry = feed.entries[0]
             
-            # Eğer yeni tweet varsa, en eskiden başlayarak sırayla gönder
-            if new_entries:
-                for entry in reversed(new_entries):
-                    # Sadece başlık ve link - RT/Alıntı karmaşasını önlemek için en temiz yol
-                    msg = f"📢 **Yeni Tweet**\n\n{entry.link}"
-                    
-                    res = requests.post(
-                        f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                        data={
-                            "chat_id": CHAT_ID, 
-                            "text": msg, 
-                            "parse_mode": "Markdown"
-                        }
-                    )
-                    
-                    last_link = entry.link
-                    # Mesajların "pat" diye değil, sıra ile gelmesi için bekleme
-                    time.sleep(5) 
-                    
+            if entry.link != last_link:
+                # Sadece link gönderiyoruz, en temiz önizleme böyle oluşur
+                msg = f"📢 **Yeni Tweet**\n\n{entry.link}"
+                
+                res = requests.post(
+                    f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                    data={
+                        "chat_id": CHAT_ID, 
+                        "text": msg, 
+                        "parse_mode": "Markdown"
+                    }
+                )
+                print(f"Telegram Gönderim Durumu: {res.status_code}")
+                last_link = entry.link
+            else:
+                print("Yeni tweet yok, bekleniyor...")
     except Exception as e:
         print(f"Hata oluştu: {e}")
 
@@ -59,10 +56,10 @@ def keep_alive():
 def worker():
     while True:
         check_rss()
-        # RSS'i 2 dakikada bir kontrol etmeye devam et
-        time.sleep(120)
+        time.sleep(120) # 2 dakikada bir kontrol
 
 if __name__ == "__main__":
     threading.Thread(target=worker, daemon=True).start()
     threading.Thread(target=keep_alive, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    
