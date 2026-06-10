@@ -10,7 +10,7 @@ app = Flask(__name__)
 # ÇEVRE DEĞİŞKENLERİNİ AL
 TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
-RSS_URL = "https://rss.app/feeds/HXScZ2SZ5dwrKNp4.xml" # Kendi linkini buraya yapıştır
+RSS_URL = "https://rss.app/feeds/ufSAESC67kjoyb0A.xml"# Kendi linkini buraya yapıştır
 
 last_link = ""
 
