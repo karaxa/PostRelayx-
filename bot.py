@@ -10,7 +10,7 @@ app = Flask(__name__)
 # ÇEVRE DEĞİŞKENLERİNİ AL
 TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
-RSS_URL = "https://rss.app/feeds/ufSAESC67kjoyb0A.xml" # Kendi linkini buraya yapıştır
+RSS_URL = "BURAYA_RSS_URL_YAZ" # Kendi linkini buraya yapıştır
 
 last_link = ""
 
@@ -25,10 +25,13 @@ def check_rss():
         if feed.entries:
             entry = feed.entries[0]
             if entry.link != last_link:
-                # Sadece başlık ve linki bıraktık, metin gövdesini sildik
-                msg = f"📢 **Yeni Tweet**\n\n{entry.link}"
+                # Önizlemelerin düzgün çıkması için linki fx linke çeviriyoruz
+                fx_link = entry.link.replace("x.com", "fxx.com")
                 
-                # Telegram'a gönderim (Önizleme AKTİF kalsın diye ek ayar yapmadık)
+                # Mesaj formatı
+                msg = f"📢 **Yeni Tweet**\n\n{fx_link}"
+                
+                # Telegram'a gönderim
                 res = requests.post(
                     f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
                     data={
@@ -61,4 +64,3 @@ if __name__ == "__main__":
     threading.Thread(target=worker, daemon=True).start()
     threading.Thread(target=keep_alive, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-    
