@@ -10,7 +10,7 @@ app = Flask(__name__)
 # ÇEVRE DEĞİŞKENLERİNİ AL
 TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
-RSS_URL = "https://rss.app/feeds/ufSAESC67kjoyb0A.xml"# Kendi linkini buraya yapıştır
+RSS_URL = "https://rss.app/feeds/ufSAESC67kjoyb0A.xml" # Kendi linkini buraya yapıştır
 
 last_link = ""
 
@@ -25,12 +25,21 @@ def check_rss():
         if feed.entries:
             entry = feed.entries[0]
             if entry.link != last_link:
-                # Başlık "Yeni Tweet" olarak güncellendi
-                msg = f"📢 **Yeni Tweet**\n\n📌 {entry.title}\n🔗 {entry.link}"
+                # 1. Metni 200 karakterde kesme işlemi
+                short_title = (entry.title[:200] + '...') if len(entry.title) > 200 else entry.title
                 
+                # 2. Mesaj formatı
+                msg = f"📢 **Yeni Tweet**\n\n📌 {short_title}\n🔗 {entry.link}"
+                
+                # 3. Telegram'a gönderim (Link önizlemesi kapalı, Markdown aktif)
                 res = requests.post(
                     f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                    data={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"}
+                    data={
+                        "chat_id": CHAT_ID, 
+                        "text": msg, 
+                        "parse_mode": "Markdown",
+                        "disable_web_page_preview": "true"
+                    }
                 )
                 print(f"Telegram Gönderim Durumu: {res.status_code}")
                 last_link = entry.link
