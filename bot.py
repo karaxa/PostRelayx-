@@ -25,13 +25,10 @@ def check_rss():
         if feed.entries:
             entry = feed.entries[0]
             if entry.link != last_link:
-                # 1. Metni 200 karakterde kesme işlemi
-                short_title = (entry.title[:200] + '...') if len(entry.title) > 200 else entry.title
+                # Sadece başlık ve linki bıraktık, metin gövdesini sildik
+                msg = f"📢 **Yeni Tweet**\n\n{entry.link}"
                 
-                # 2. Mesaj formatı
-                msg = f"📢 **Yeni Tweet**\n\n📌 {short_title}\n🔗 {entry.link}"
-                
-                # 3. Telegram'a gönderim (Önizleme AKTİF - disable_web_page_preview kaldırıldı)
+                # Telegram'a gönderim (Önizleme AKTİF kalsın diye ek ayar yapmadık)
                 res = requests.post(
                     f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
                     data={
