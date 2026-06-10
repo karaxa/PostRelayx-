@@ -31,14 +31,13 @@ def check_rss():
                 # 2. Mesaj formatı
                 msg = f"📢 **Yeni Tweet**\n\n📌 {short_title}\n🔗 {entry.link}"
                 
-                # 3. Telegram'a gönderim (Link önizlemesi kapalı, Markdown aktif)
+                # 3. Telegram'a gönderim (Önizleme AKTİF - disable_web_page_preview kaldırıldı)
                 res = requests.post(
                     f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
                     data={
                         "chat_id": CHAT_ID, 
                         "text": msg, 
-                        "parse_mode": "Markdown",
-                        "disable_web_page_preview": "true"
+                        "parse_mode": "Markdown"
                     }
                 )
                 print(f"Telegram Gönderim Durumu: {res.status_code}")
