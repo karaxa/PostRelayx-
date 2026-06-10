@@ -23,11 +23,11 @@ def check_rss():
     try:
         feed = feedparser.parse(RSS_URL)
         if feed.entries:
-            # Sadece en son gelen tweeti (0. indeks) alıyoruz
+            # Sadece en son gelen tweeti alıyoruz
             entry = feed.entries[0]
             
             if entry.link != last_link:
-                # Sadece link gönderiyoruz, en temiz önizleme böyle oluşur
+                # Önizlemeyi zorla açmak için disable_web_page_preview: "False" ekledik
                 msg = f"📢 **Yeni Tweet**\n\n{entry.link}"
                 
                 res = requests.post(
@@ -35,7 +35,8 @@ def check_rss():
                     data={
                         "chat_id": CHAT_ID, 
                         "text": msg, 
-                        "parse_mode": "Markdown"
+                        "parse_mode": "Markdown",
+                        "disable_web_page_preview": "False" 
                     }
                 )
                 print(f"Telegram Gönderim Durumu: {res.status_code}")
@@ -62,4 +63,3 @@ if __name__ == "__main__":
     threading.Thread(target=worker, daemon=True).start()
     threading.Thread(target=keep_alive, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-    
