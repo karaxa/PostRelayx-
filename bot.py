@@ -64,7 +64,7 @@ def keep_alive():
 def worker():
     while True:
         check_rss()
-        time.sleep(3600) # 60 dakika (RSS.app ile uyumlu)
+        time.sleep(900) # 15 dakika (RSS.app ile uyumlu)
 
 if __name__ == "__main__":
     threading.Thread(target=worker, daemon=True).start()
