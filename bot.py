@@ -7,27 +7,27 @@ from flask import Flask
 
 app = Flask(__name__)
 
-# ÇEVRE DEĞİŞKENLERİNİ AL
 TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
-RSS_URL = "https://rss.app/feeds/ufSAESC67kjoyb0A.xml" # Kendi linkini buraya yapıştır
+RSS_URL = "https://rss.app/feeds/ufSAESC67kjoyb0A.xml"
 
-last_link = ""
+# Botun hafızası: Son gönderilen 10 linki burada tutuyoruz
+sent_links = [] 
 
 @app.route('/')
 def home():
     return "Bot aktif ve tarama yapıyor.", 200
 
 def check_rss():
-    global last_link
+    global sent_links
     try:
         feed = feedparser.parse(RSS_URL)
         if feed.entries:
-            # Sadece en son gelen tweeti alıyoruz
+            # En son gelen tweet (RSS.app beslemesinin en başındaki)
             entry = feed.entries[0]
             
-            if entry.link != last_link:
-                # Önizlemeyi zorla açmak için disable_web_page_preview: "False" ekledik
+            # Eğer bu link daha önce gönderilenler listesinde YOKSA:
+            if entry.link not in sent_links:
                 msg = f"📢 **Yeni Tweet**\n\n{entry.link}"
                 
                 res = requests.post(
@@ -39,10 +39,17 @@ def check_rss():
                         "disable_web_page_preview": "False" 
                     }
                 )
+                
+                # Eğer gönderim başarılıysa, bu linki hafızaya ekle
+                if res.status_code == 200:
+                    sent_links.append(entry.link)
+                    # Hafızayı sadece son 10 linkle sınırla (gereksiz yer kaplamasın)
+                    if len(sent_links) > 10:
+                        sent_links.pop(0)
+                        
                 print(f"Telegram Gönderim Durumu: {res.status_code}")
-                last_link = entry.link
             else:
-                print("Yeni tweet yok, bekleniyor...")
+                print("Tweet zaten gönderilmiş, pas geçildi.")
     except Exception as e:
         print(f"Hata oluştu: {e}")
 
@@ -57,7 +64,7 @@ def keep_alive():
 def worker():
     while True:
         check_rss()
-        time.sleep(120) # 2 dakikada bir kontrol
+        time.sleep(3600) # 60 dakika (RSS.app ile uyumlu)
 
 if __name__ == "__main__":
     threading.Thread(target=worker, daemon=True).start()
