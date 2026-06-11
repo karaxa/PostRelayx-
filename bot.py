@@ -1,42 +1,64 @@
+import feedparser
+import time
+import os
+import requests
+import threading
+from flask import Flask
+
+app = Flask(__name__)
+
+# ÇEVRE DEĞİŞKENLERİNİ AL
+TOKEN = os.environ.get("BOT_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
+RSS_URL = "https://rss.app/feeds/ufSAESC67kjoyb0A.xml" # Kendi linkini buraya yapıştır
+
+last_link = ""
+
+@app.route('/')
+def home():
+    return "Bot aktif ve tarama yapıyor.", 200
+
 def check_rss():
-    global sent_links
+    global last_link
     try:
-        # RSS beslemesini çek
-        feed = feedparser.parse(https://rss.app/feeds/ufSAESC67kjoyb0A.xml)
-        
-        # En son tweeti al
+        feed = feedparser.parse(RSS_URL)
         if feed.entries:
             entry = feed.entries[0]
-            
-            # Linkin sonundaki ID'yi al (Örn: .../status/123456789 -> 123456789)
-            tweet_id = entry.link.split('/')[-1]
-            
-            # Eğer bu ID daha önce gönderilenler listesinde yoksa gönder
-            if tweet_id not in sent_links:
-                # Mesajı hazırla
-                msg = f"📢 **Yeni Tweet Geldi!**\n\n{entry.link}"
+            if entry.link != last_link:
+                # Sadece başlık ve linki bıraktık, metin gövdesini sildik
+                msg = f"📢 **Yeni Tweet**\n\n{entry.link}"
                 
-                # Telegram'a gönder
+                # Telegram'a gönderim (Önizleme AKTİF kalsın diye ek ayar yapmadık)
                 res = requests.post(
                     f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                    data={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"}
+                    data={
+                        "chat_id": CHAT_ID, 
+                        "text": msg, 
+                        "parse_mode": "Markdown"
+                    }
                 )
-                
-                # Gönderim başarılıysa listeye ekle
-                if res.status_code == 200:
-                    sent_links.append(tweet_id)
-                    # Sadece son 10'u tut
-                    if len(sent_links) > 10:
-                        sent_links.pop(0)
-                    print(f"Gönderildi: {tweet_id}")
-                else:
-                    print(f"Telegram hatası: {res.text}")
+                print(f"Telegram Gönderim Durumu: {res.status_code}")
+                last_link = entry.link
             else:
-                # Zaten gönderildi ise buraya düşer
-                print(f"Zaten gönderilmiş, atlandı: {tweet_id}")
-        else:
-            print("RSS boş görünüyor.")
-            
+                print("Yeni tweet yok, bekleniyor...")
     except Exception as e:
-        print(f"Bir hata oluştu: {e}")
-        
+        print(f"Hata oluştu: {e}")
+
+def keep_alive():
+    while True:
+        try:
+            requests.get("https://ollo-hwvh.onrender.com/") 
+        except:
+            pass
+        time.sleep(300)
+
+def worker():
+    while True:
+        check_rss()
+        time.sleep(120)
+
+if __name__ == "__main__":
+    threading.Thread(target=worker, daemon=True).start()
+    threading.Thread(target=keep_alive, daemon=True).start()
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    
