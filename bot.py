@@ -19,7 +19,7 @@ supabase = create_client(url, key)
 
 @app.route('/')
 def home():
-    return "Bot Supabase ile aktif.", 200
+    return "Bot Supabase ile aktif v2.", 200
 
 # Şu satırı ekle (UptimeRobot'un sevdiği bir endpoint)
 @app.route('/health')
@@ -56,4 +56,4 @@ def worker():
 
 if __name__ == "__main__":
     threading.Thread(target=worker, daemon=True).start()
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080))
