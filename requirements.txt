@@ -2,4 +2,3 @@ feedparser
 supabase
 requests
 flask
-
