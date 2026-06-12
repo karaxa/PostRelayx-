@@ -1,1 +1,5 @@
+feedparser
 supabase
+requests
+flask
+
