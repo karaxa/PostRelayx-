@@ -21,6 +21,12 @@ supabase = create_client(url, key)
 def home():
     return "Bot Supabase ile aktif.", 200
 
+# Şu satırı ekle (UptimeRobot'un sevdiği bir endpoint)
+@app.route('/health')
+def health():
+    return "OK", 200
+
+
 def check_rss():
     try:
         feed = feedparser.parse(RSS_URL)
