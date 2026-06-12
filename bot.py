@@ -4,64 +4,50 @@ import os
 import requests
 import threading
 from flask import Flask
+from supabase import create_client
 
 app = Flask(__name__)
 
-# ÇEVRE DEĞİŞKENLERİ
 TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 RSS_URL = "https://rss.app/feeds/ufSAESC67kjoyb0A.xml"
 
-# HAFIZA (Son 10 tweeti tutacak liste)
-sent_links = []
+# Supabase bağlantısını başlat
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY")
+supabase = create_client(url, key)
 
 @app.route('/')
 def home():
-    return "Bot aktif ve tarama yapıyor.", 200
+    return "Bot Supabase ile aktif.", 200
 
 def check_rss():
-    global sent_links
     try:
         feed = feedparser.parse(RSS_URL)
         if feed.entries:
             entry = feed.entries[0]
-            # Linkin sonundaki ID'yi alıyoruz (Daha güvenli)
             tweet_id = entry.link.split('/')[-1]
             
-            if tweet_id not in sent_links:
+            # Veritabanında var mı?
+            response = supabase.table("tweet_history").select("tweet_id").eq("tweet_id", tweet_id).execute()
+            
+            # Eğer boşsa (yani yoksa), gönder ve kaydet
+            if not response.data:
                 msg = f"📢 **Yeni Tweet**\n\n{entry.link}"
-                res = requests.post(
-                    f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                    data={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"}
-                )
+                res = requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                                    data={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"})
                 
                 if res.status_code == 200:
-                    sent_links.append(tweet_id)
-                    # Sadece son 10 ID'yi tut
-                    if len(sent_links) > 10:
-                        sent_links.pop(0)
-                    print(f"Gönderildi: {tweet_id}")
-            else:
-                print("Yeni tweet yok (Hafızada mevcut).")
-                
+                    supabase.table("tweet_history").insert({"tweet_id": tweet_id}).execute()
+                    print(f"Başarıyla gönderildi ve kaydedildi: {tweet_id}")
     except Exception as e:
-        print(f"Hata oluştu: {e}")
-
-def keep_alive():
-    while True:
-        try:
-            requests.get("https://ollo-hwvh.onrender.com/") 
-        except:
-            pass
-        time.sleep(300)
+        print(f"Hata: {e}")
 
 def worker():
     while True:
         check_rss()
-        time.sleep(120) # 2 dakikada bir kontrol
+        time.sleep(120)
 
 if __name__ == "__main__":
     threading.Thread(target=worker, daemon=True).start()
-    threading.Thread(target=keep_alive, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-    
