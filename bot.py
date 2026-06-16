@@ -12,7 +12,7 @@ app = Flask(__name__)
 # Çevre Değişkenleri
 TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
-RSS_URL = "https://rss.app/feeds/ufSAESC67kjoyb0A.xml"
+RSS_URL = "https://rss.app/feeds/NMMSMy8roToCBl18.xml"
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
